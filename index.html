@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Röstinspelare</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="tabs">
+    <button class="tab active" id="tab-record">SPELA IN</button>
+    <button class="tab" id="tab-listen">LYSSNA</button>
+  </nav>
+
+  <main>
+    <!-- Spela in vy -->
+    <section class="view active" id="view-record">
+      <div class="timer" id="timer">00:00:00</div>
+      <button class="mic-btn" id="record-btn" aria-label="Spela in">
+        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+        </svg>
+      </button>
+    </section>
+
+    <!-- Lyssna vy -->
+    <section class="view" id="view-listen">
+      <ul class="audio-list" id="audio-list"></ul>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
