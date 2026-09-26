@@ -19,6 +19,7 @@
   <nav class="tabs">
     <button class="tab active" id="tab-record">SPELA IN</button>
     <button class="tab" id="tab-listen">LYSSNA</button>
+    <button class="tab-settings" id="settings-btn" aria-label="Inställningar">⚙️</button>
   </nav>
 
   <main>
@@ -39,6 +40,17 @@
       <ul class="audio-list" id="audio-list"></ul>
     </section>
   </main>
+
+  <!-- Modal för Import / Export av JSON -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Backup & Data</h2>
+      <button id="export-btn" class="modal-btn">Exportera JSON</button>
+      <label for="import-file" class="modal-btn">Importera JSON</label>
+      <input type="file" id="import-file" accept=".json" style="display: none;">
+      <button id="close-settings" class="modal-close-btn">Stäng</button>
+    </div>
+  </div>
 
   <!-- Din färdiga JS-logik -->
   <script src="app.js"></script>

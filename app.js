@@ -33,6 +33,7 @@ request.onupgradeneeded = (e) => {
 request.onsuccess = (e) => {
   db = e.target.result;
   loadRecordings();
+  initSettingsModal();
 };
 
 // UI Elements & Navigation
@@ -190,4 +191,132 @@ function deleteRecord(id) {
   const tx = db.transaction("recordings", "readwrite");
   tx.objectStore("recordings").delete(id);
   tx.oncomplete = () => loadRecordings();
+}
+
+// --- IMPORT / EXPORT JSON LOGIK ---
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function base64ToBlob(base64, defaultType = 'audio/webm') {
+  const parts = base64.split(';base64,');
+  const contentType = parts[0].replace('data:', '') || defaultType;
+  const raw = window.atob(parts[1] || parts[0]);
+  const rawLength = raw.length;
+  const uInt8Array = new Uint8Array(rawLength);
+
+  for (let i = 0; i < rawLength; ++i) {
+    uInt8Array[i] = raw.charCodeAt(i);
+  }
+
+  return new Blob([uInt8Array], { type: contentType });
+}
+
+function initSettingsModal() {
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsModal = document.getElementById('settings-modal');
+  const closeSettings = document.getElementById('close-settings');
+  const exportBtn = document.getElementById('export-btn');
+  const importFile = document.getElementById('import-file');
+
+  if (!settingsBtn || !settingsModal) return;
+
+  settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+  closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+  window.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+      settingsModal.classList.add('hidden');
+    }
+  });
+
+  // Exportera alla röstinspelningar från IndexedDB till JSON
+  exportBtn.addEventListener('click', () => {
+    if (!db) return;
+
+    const tx = db.transaction("recordings", "readonly");
+    const store = tx.objectStore("recordings");
+
+    store.getAll().onsuccess = async (e) => {
+      const records = e.target.result;
+      if (!records || records.length === 0) {
+        alert("Det finns inga inspelningar att exportera.");
+        return;
+      }
+
+      try {
+        const exportData = await Promise.all(
+          records.map(async (rec) => {
+            const base64Audio = await blobToBase64(rec.blob);
+            return {
+              id: rec.id,
+              date: rec.date,
+              mimeType: rec.mimeType || 'audio/webm',
+              audioBase64: base64Audio
+            };
+          })
+        );
+
+        const jsonString = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `voice-recordings-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert("Kunde inte exportera inspelningarna.");
+      }
+    };
+  });
+
+  // Importera röstinspelningar från JSON till IndexedDB
+  importFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const importedItems = JSON.parse(event.target.result);
+        if (!Array.isArray(importedItems)) {
+          alert("Ogiltigt JSON-format.");
+          return;
+        }
+
+        const tx = db.transaction("recordings", "readwrite");
+        const store = tx.objectStore("recordings");
+
+        importedItems.forEach((item) => {
+          if (item.audioBase64) {
+            const blob = base64ToBlob(item.audioBase64, item.mimeType || 'audio/webm');
+            store.add({
+              blob: blob,
+              mimeType: item.mimeType || 'audio/webm',
+              date: item.date || new Date().toLocaleString("sv-SE")
+            });
+          }
+        });
+
+        tx.oncomplete = () => {
+          alert("Inspelningarna har importerats!");
+          settingsModal.classList.add("hidden");
+          loadRecordings();
+        };
+      } catch (err) {
+        alert("Det gick inte att läsa JSON-filen.");
+      }
+    };
+    reader.readAsText(file);
+  });
 }
